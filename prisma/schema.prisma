@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Platform {
+  X
+  LINKEDIN
+  OTHER
+}
+
+enum SocialMetricSource {
+  API
+  MANUAL
+  DEMO
+}
+
+enum ContactType {
+  EMAIL
+  PHONE
+  LINKEDIN
+  X
+  WEBSITE
+}
+
+enum DmPlatform {
+  X
+  LINKEDIN
+}
+
+enum AnalysisStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum LaunchSignal {
+  UNDERPERFORMING
+  STRONG_LAUNCH
+  NEEDS_DATA
+  READY_FOR_OUTREACH
+  NORMAL
+}
+
+model Company {
+  id            String          @id @default(cuid())
+  name          String          @unique
+  website       String?
+  description   String?
+  industry      String?
+  ycBatch       String?
+  crunchbaseUrl String?
+  linkedinUrl   String?
+  xUrl          String?
+  launches      Launch[]
+  fundingRounds FundingRound[]
+  contactMethods ContactMethod[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([industry])
+}
+
+model Launch {
+  id                  String         @id @default(cuid())
+  companyId           String
+  company             Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  platform            Platform
+  postUrl             String         @unique
+  postId              String?
+  authorHandle        String?
+  postText            String?
+  postedAt            DateTime?
+  mediaType           String?
+  detectedProductName String?
+  aiSummary           String?
+  launchScore         Int?
+  signal              LaunchSignal   @default(NEEDS_DATA)
+  performanceReason   String?
+  outreachAngle       String?
+  socialMetrics       SocialMetric[]
+  dmDrafts            DmDraft[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([companyId])
+  @@index([platform])
+  @@index([signal])
+}
+
+model SocialMetric {
+  id          String             @id @default(cuid())
+  launchId    String
+  launch      Launch             @relation(fields: [launchId], references: [id], onDelete: Cascade)
+  platform    Platform
+  likes       Int                @default(0)
+  comments    Int                @default(0)
+  reposts     Int                @default(0)
+  views       Int                @default(0)
+  collectedAt DateTime           @default(now())
+  source      SocialMetricSource
+
+  @@index([launchId])
+  @@index([platform])
+}
+
+model FundingRound {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  amountUsd   Float
+  round       String
+  announcedAt DateTime?
+  investors   String[]
+  source      String
+  sourceUrl   String?
+  confidence  Float    @default(0)
+
+  @@index([companyId])
+  @@index([announcedAt])
+}
+
+model ContactMethod {
+  id         String      @id @default(cuid())
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type       ContactType
+  value      String
+  label      String?
+  confidence Float       @default(0)
+  source     String
+  createdAt  DateTime    @default(now())
+
+  @@unique([companyId, type, value])
+  @@index([companyId])
+  @@index([type])
+}
+
+model DmDraft {
+  id          String     @id @default(cuid())
+  launchId    String
+  launch      Launch     @relation(fields: [launchId], references: [id], onDelete: Cascade)
+  platform    DmPlatform
+  tone        String
+  body        String
+  scoreReason String
+  createdAt   DateTime   @default(now())
+
+  @@unique([launchId, platform, tone])
+  @@index([launchId])
+}
+
+model AnalysisRun {
+  id          String         @id @default(cuid())
+  status      AnalysisStatus @default(PENDING)
+  inputUrls   String[]
+  logs        Json?
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+}
