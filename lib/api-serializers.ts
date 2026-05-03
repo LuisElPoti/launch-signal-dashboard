@@ -32,6 +32,20 @@ function isoDate(date?: Date | null) {
   return (date ?? new Date()).toISOString().slice(0, 10);
 }
 
+function pickContactValue(
+  contacts: LaunchWithRelations["company"]["contactMethods"],
+  type: "EMAIL" | "PHONE" | "LINKEDIN" | "X" | "WEBSITE"
+) {
+  const priority = ["INPUT_URL", "MANUAL", "API", "TAVILY", "DOMAIN_INFERENCE", "DEMO"];
+  return contacts
+    .filter((contact) => contact.type === type)
+    .sort((a, b) => {
+      const aPriority = priority.indexOf(a.source);
+      const bPriority = priority.indexOf(b.source);
+      return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
+    })[0]?.value ?? null;
+}
+
 export function toLaunchRow(launch: LaunchWithRelations): LaunchRow {
   const funding = launch.company.fundingRounds[0];
   const xMetric = launch.socialMetrics.find((metric) => metric.platform === "X");
@@ -66,10 +80,10 @@ export function toLaunchRow(launch: LaunchWithRelations): LaunchRow {
     launchScore: launch.launchScore ?? 50,
     signal: mapBackendSignal(launch.signal),
     contact: {
-      email: contacts.find((contact) => contact.type === "EMAIL")?.value ?? null,
-      phone: contacts.find((contact) => contact.type === "PHONE")?.value ?? null,
-      linkedin: contacts.find((contact) => contact.type === "LINKEDIN")?.value ?? null,
-      xProfile: contacts.find((contact) => contact.type === "X")?.value ?? null,
+      email: pickContactValue(contacts, "EMAIL"),
+      phone: pickContactValue(contacts, "PHONE"),
+      linkedin: pickContactValue(contacts, "LINKEDIN"),
+      xProfile: launch.platform === "X" ? launch.postUrl : pickContactValue(contacts, "X"),
       confidenceScore: contactConfidence,
     },
     dmDraftX: draftX?.body ?? "",

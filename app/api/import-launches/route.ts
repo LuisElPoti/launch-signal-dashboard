@@ -104,11 +104,6 @@ function isDemoMode() {
   return process.env.DEMO_MODE === "true";
 }
 
-function xProfileFromHandle(handle?: string | null) {
-  if (!handle) return null;
-  return `https://x.com/${handle.replace("@", "")}`;
-}
-
 async function findOrCreateCompany(input: {
   name: string;
   description?: string | null;
@@ -373,7 +368,7 @@ export async function POST(request: Request) {
             confidence: extracted.confidence,
           },
         });
-        const xUrl = platform === "X" ? xProfileFromHandle(details.authorHandle ?? xHandle) : null;
+        const xUrl = platform === "X" ? url : null;
         const linkedinUrl = platform === "LINKEDIN" ? url : null;
         const company = await findOrCreateCompany({
           name: extracted.companyName,

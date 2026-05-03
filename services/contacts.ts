@@ -129,7 +129,7 @@ function buildContactQuery(company: ContactCompanyInput) {
       ? ` "${company.productName}"`
       : "";
 
-  return `"${company.name}"${product} official website contact email founder LinkedIn X Twitter`;
+  return `"${company.name}"${product} official website contact email founder LinkedIn`;
 }
 
 function getPayloadText(payload: TavilySearchResponse) {
@@ -192,27 +192,6 @@ function extractLinkedInUrls(payload: TavilySearchResponse, text: string): Conta
     }));
 }
 
-function extractXUrls(payload: TavilySearchResponse, text: string): ContactEnrichment[] {
-  const urls = [
-    ...payload.results.map((result) => result.url),
-    ...(text.match(/https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[^\s"'<>),]+/gi) ?? []),
-  ];
-
-  return urls
-    .filter((url) => {
-      const parts = url.split("/").filter(Boolean);
-      return parts.length >= 3 && !/\/(?:status|intent|share|search)\//i.test(url);
-    })
-    .slice(0, 3)
-    .map((url) => ({
-      type: "X" as const,
-      value: url.replace(/\/$/, ""),
-      label: "X profile from Tavily search",
-      confidence: 0.72,
-      source: "TAVILY",
-    }));
-}
-
 function extractWebsite(payload: TavilySearchResponse): ContactEnrichment[] {
   const result = payload.results.find((item) => {
     const domain = domainFromUrl(item.url);
@@ -241,7 +220,6 @@ async function enrichContactsFromTavily(company: ContactCompanyInput): Promise<C
     ...extractEmails(text),
     ...extractPhones(text),
     ...extractLinkedInUrls(payload, text),
-    ...extractXUrls(payload, text),
     ...extractWebsite(payload),
   ]);
 }
@@ -287,7 +265,7 @@ export async function enrichContactsForCompany(
     inferred.push({
       type: "X",
       value: company.xUrl,
-      label: "X",
+      label: "X launch post",
       confidence: 0.62,
       source: "INPUT_URL",
     });
