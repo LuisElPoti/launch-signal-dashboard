@@ -128,18 +128,18 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
         ))}
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative">
+      <div className="flex items-stretch sm:items-center gap-3 flex-col sm:flex-row sm:flex-wrap">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter drafts..."
-            className="pl-8 h-8 text-xs w-52 bg-card"
+            className="pl-8 h-8 text-xs w-full sm:w-52 bg-card"
           />
         </div>
 
-        <div className="flex gap-1 bg-muted rounded-xl p-1">
+        <div className="flex gap-1 bg-muted rounded-xl p-1 overflow-x-auto">
           {[
             { id: "all", label: "All" },
             { id: "with", label: "With draft" },
@@ -160,7 +160,7 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
           ))}
         </div>
 
-        <div className="flex gap-1 bg-muted rounded-xl p-1 ml-auto">
+        <div className="flex gap-1 bg-muted rounded-xl p-1 sm:ml-auto overflow-x-auto">
           <button
             onClick={() => setPlatform("x")}
             className={cn(
@@ -199,8 +199,8 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
                 isContacted ? "border-emerald-500/20 opacity-70" : "border-border"
               )}
             >
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                <div className="flex items-center gap-2.5">
+              <div className="flex flex-col min-[520px]:flex-row min-[520px]:items-center justify-between gap-3 px-5 py-3.5 border-b border-border">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div
                     className={cn(
                       "size-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0",
@@ -211,16 +211,16 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
                   >
                     {row.company[0]}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground">{row.company}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground truncate">{row.company}</p>
                       <SignalBadge signal={row.signal} />
                     </div>
                     <p className="text-xs text-muted-foreground">{row.product}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 min-[520px]:justify-end">
                   {handle && (
                     <span className="text-xs text-muted-foreground bg-muted rounded-lg px-2 py-1 font-mono truncate max-w-32">
                       {platform === "x" ? handle : "LinkedIn"}
@@ -254,7 +254,7 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-5 pb-4">
+              <div className="flex items-center gap-2 px-5 pb-4 flex-wrap">
                 <CopyButton text={draft} />
                 <button
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -271,10 +271,10 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
                   <MessageCircle className="size-3.5" />
                   Full analysis
                 </button>
-                <div className="flex items-center gap-2 ml-auto">
+                <div className="flex items-center gap-2 w-full min-[640px]:w-auto min-[640px]:ml-auto flex-wrap">
                   <button
                     className={cn(
-                      "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors border",
+                      "flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors border flex-1 min-[640px]:flex-none",
                       isContacted
                         ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/15 hover:bg-emerald-500/15"
                         : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
@@ -285,7 +285,7 @@ export function DMDraftsTab({ launches, onRowClick, onDraftGenerated }: DMDrafts
                     {isContacted ? "Contacted" : "Mark contacted"}
                   </button>
                   <button
-                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="flex items-center justify-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-1 min-[640px]:flex-none"
                     onClick={() => {
                       const url =
                         platform === "x"

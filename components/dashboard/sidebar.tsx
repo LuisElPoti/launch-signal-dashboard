@@ -20,7 +20,7 @@ interface NavItem {
   id: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
   { label: "Launch Tracker", icon: Rocket, id: "tracker" },
   { label: "Underperformers", icon: TrendingDown, id: "underperformers" },
@@ -40,7 +40,7 @@ export function Sidebar({ activeSection, onNavigate }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200",
+        "hidden md:flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-200",
         collapsed ? "w-16" : "w-56"
       )}
     >

@@ -101,7 +101,7 @@ export function UnderperformersTab({ launches, onRowClick }: UnderperformersProp
           >
             <div className="p-5">
               {/* Header */}
-              <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex flex-col min-[460px]:flex-row min-[460px]:items-start justify-between gap-3 min-[460px]:gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/15 flex items-center justify-center text-sm font-bold shrink-0">
                     {row.company[0]}
@@ -158,15 +158,15 @@ export function UnderperformersTab({ launches, onRowClick }: UnderperformersProp
             </div>
 
             {/* Footer CTA */}
-            <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
+            <div className="px-5 py-3 border-t border-border bg-muted/20 flex flex-col min-[520px]:flex-row min-[520px]:items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground leading-relaxed">
                 Launched {formatDate(row.launchDate, { month: "long" })}
                 {" · "}
                 {row.stage} · {row.investors[0]}
                 {row.investors.length > 1 && ` +${row.investors.length - 1}`}
               </span>
               <button
-                className="text-xs bg-primary/10 text-primary hover:bg-primary/20 rounded-lg px-2.5 py-1 font-medium transition-colors flex items-center gap-1"
+                className="text-xs bg-primary/10 text-primary hover:bg-primary/20 rounded-lg px-2.5 py-1 font-medium transition-colors flex items-center justify-center gap-1 w-full min-[520px]:w-auto"
                 onClick={(e) => { e.stopPropagation(); onRowClick(row); }}
               >
                 <MessageCircle className="size-3" />

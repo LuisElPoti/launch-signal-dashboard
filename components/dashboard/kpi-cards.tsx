@@ -46,7 +46,7 @@ export function KPICards({ launches }: { launches: LaunchRow[] }) {
   const KPIS = computeKpis(launches);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 min-[430px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
       <KPICard
         label="Launches Analyzed"
         value={String(KPIS.launchesAnalyzed)}

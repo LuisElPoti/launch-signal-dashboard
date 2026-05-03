@@ -139,9 +139,9 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
         className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40"
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
+        <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border shrink-0">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Analyze Launch URLs</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -156,7 +156,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
             </button>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
             <div>
               <label className="text-xs font-medium text-foreground mb-1.5 block">
                 Launch URLs
@@ -267,7 +267,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
             </div>
           </div>
 
-          <div className="px-5 py-4 border-t border-border flex items-center gap-3">
+          <div className="px-4 sm:px-5 py-4 border-t border-border flex items-center gap-3 shrink-0">
             <Button
               variant="outline"
               size="sm"

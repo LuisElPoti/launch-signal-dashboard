@@ -110,25 +110,27 @@ export default function DashboardPage() {
   const Icon = meta.icon;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       <Sidebar activeSection={activeSection} onNavigate={setActiveSection} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopNav
           onImport={() => setImportOpen(true)}
+          activeSection={activeSection}
+          onNavigate={setActiveSection}
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-screen-2xl mx-auto p-5 space-y-5">
+          <div className="max-w-screen-2xl mx-auto p-3 sm:p-5 space-y-4 sm:space-y-5">
             <div className="flex items-start gap-3">
               <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Icon className="size-4.5 text-primary" />
               </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground text-balance">
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground text-balance">
                   {meta.title}
                 </h1>
-                <p className="text-sm text-muted-foreground mt-0.5 text-pretty">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 text-pretty">
                   {meta.subtitle}
                 </p>
               </div>
