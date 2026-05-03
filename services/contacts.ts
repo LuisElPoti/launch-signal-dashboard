@@ -1,11 +1,33 @@
 import type { ContactEnrichment } from "./types";
+import { searchTavily, type TavilySearchResponse } from "./tavily";
 
 interface ContactCompanyInput {
   name: string;
+  productName?: string | null;
   website?: string | null;
   linkedinUrl?: string | null;
   xUrl?: string | null;
 }
+
+const NON_COMPANY_DOMAINS = new Set([
+  "angel.co",
+  "crunchbase.com",
+  "facebook.com",
+  "github.com",
+  "google.com",
+  "instagram.com",
+  "linkedin.com",
+  "medium.com",
+  "pitchbook.com",
+  "producthunt.com",
+  "substack.com",
+  "techcrunch.com",
+  "twitter.com",
+  "wellfound.com",
+  "x.com",
+  "ycombinator.com",
+  "youtube.com",
+]);
 
 const DEMO_CONTACTS: Record<string, ContactEnrichment[]> = {
   "cerebral ai": [
@@ -56,6 +78,10 @@ function normalizeName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function isDemoMode() {
+  return process.env.DEMO_MODE === "true";
+}
+
 function inferDomain(website?: string | null) {
   if (!website) return null;
   try {
@@ -64,6 +90,27 @@ function inferDomain(website?: string | null) {
   } catch {
     return null;
   }
+}
+
+function normalizeWebsite(url: string) {
+  try {
+    const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return `https://${parsed.hostname.replace(/^www\./, "")}`;
+  } catch {
+    return null;
+  }
+}
+
+function domainFromUrl(url: string) {
+  try {
+    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+function isKnownNonCompanyDomain(domain: string) {
+  return [...NON_COMPANY_DOMAINS].some((blocked) => domain === blocked || domain.endsWith(`.${blocked}`));
 }
 
 function dedupeContacts(contacts: ContactEnrichment[]) {
@@ -76,12 +123,138 @@ function dedupeContacts(contacts: ContactEnrichment[]) {
   });
 }
 
+function buildContactQuery(company: ContactCompanyInput) {
+  const product =
+    company.productName && normalizeName(company.productName) !== normalizeName(company.name)
+      ? ` "${company.productName}"`
+      : "";
+
+  return `"${company.name}"${product} official website contact email founder LinkedIn X Twitter`;
+}
+
+function getPayloadText(payload: TavilySearchResponse) {
+  return [
+    payload.answer ?? "",
+    ...payload.results.map((result) => `${result.title}\n${result.url}\n${result.content}`),
+  ].join("\n");
+}
+
+function extractEmails(text: string): ContactEnrichment[] {
+  const matches = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
+  return matches
+    .map((value) => value.toLowerCase())
+    .filter((value) => !value.includes("example.") && !value.startsWith("noreply@"))
+    .slice(0, 4)
+    .map((value) => ({
+      type: "EMAIL" as const,
+      value,
+      label: "Public email from Tavily search",
+      confidence: 0.72,
+      source: "TAVILY",
+    }));
+}
+
+function extractPhones(text: string): ContactEnrichment[] {
+  const matches =
+    text.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b/g) ?? [];
+
+  return matches
+    .map((value) => value.trim())
+    .filter((value) => {
+      const digits = value.replace(/\D/g, "");
+      return digits.length >= 10 && digits.length <= 15;
+    })
+    .slice(0, 2)
+    .map((value) => ({
+      type: "PHONE" as const,
+      value,
+      label: "Public phone from Tavily search",
+      confidence: 0.5,
+      source: "TAVILY",
+    }));
+}
+
+function extractLinkedInUrls(payload: TavilySearchResponse, text: string): ContactEnrichment[] {
+  const urls = [
+    ...payload.results.map((result) => result.url),
+    ...(text.match(/https?:\/\/(?:www\.)?linkedin\.com\/[^\s"'<>),]+/gi) ?? []),
+  ];
+
+  return urls
+    .filter((url) => /linkedin\.com\/(?:company|in)\//i.test(url))
+    .slice(0, 3)
+    .map((url) => ({
+      type: "LINKEDIN" as const,
+      value: url.replace(/\/$/, ""),
+      label: "LinkedIn from Tavily search",
+      confidence: 0.74,
+      source: "TAVILY",
+    }));
+}
+
+function extractXUrls(payload: TavilySearchResponse, text: string): ContactEnrichment[] {
+  const urls = [
+    ...payload.results.map((result) => result.url),
+    ...(text.match(/https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[^\s"'<>),]+/gi) ?? []),
+  ];
+
+  return urls
+    .filter((url) => {
+      const parts = url.split("/").filter(Boolean);
+      return parts.length >= 3 && !/\/(?:status|intent|share|search)\//i.test(url);
+    })
+    .slice(0, 3)
+    .map((url) => ({
+      type: "X" as const,
+      value: url.replace(/\/$/, ""),
+      label: "X profile from Tavily search",
+      confidence: 0.72,
+      source: "TAVILY",
+    }));
+}
+
+function extractWebsite(payload: TavilySearchResponse): ContactEnrichment[] {
+  const result = payload.results.find((item) => {
+    const domain = domainFromUrl(item.url);
+    return domain && !isKnownNonCompanyDomain(domain);
+  });
+  const website = result ? normalizeWebsite(result.url) : null;
+  if (!website) return [];
+
+  return [
+    {
+      type: "WEBSITE",
+      value: website,
+      label: "Website from Tavily search",
+      confidence: Math.min(0.82, 0.62 + (result?.score ?? 0) * 0.2),
+      source: "TAVILY",
+    },
+  ];
+}
+
+async function enrichContactsFromTavily(company: ContactCompanyInput): Promise<ContactEnrichment[]> {
+  const payload = await searchTavily(buildContactQuery(company), { topic: "general" });
+  if (!payload?.results?.length) return [];
+
+  const text = getPayloadText(payload);
+  return dedupeContacts([
+    ...extractEmails(text),
+    ...extractPhones(text),
+    ...extractLinkedInUrls(payload, text),
+    ...extractXUrls(payload, text),
+    ...extractWebsite(payload),
+  ]);
+}
+
 export async function enrichContactsForCompany(
   company: ContactCompanyInput
 ): Promise<ContactEnrichment[]> {
-  const seeded = DEMO_CONTACTS[normalizeName(company.name)] ?? [];
+  const seeded = isDemoMode() ? DEMO_CONTACTS[normalizeName(company.name)] ?? [] : [];
+  const tavilyContacts = await enrichContactsFromTavily(company);
   const inferred: ContactEnrichment[] = [];
-  const domain = inferDomain(company.website);
+  const discoveredWebsite =
+    company.website ?? tavilyContacts.find((contact) => contact.type === "WEBSITE")?.value ?? null;
+  const domain = inferDomain(discoveredWebsite);
 
   if (domain) {
     inferred.push({
@@ -120,5 +293,5 @@ export async function enrichContactsForCompany(
     });
   }
 
-  return dedupeContacts([...seeded, ...inferred]);
+  return dedupeContacts([...seeded, ...tavilyContacts, ...inferred]);
 }

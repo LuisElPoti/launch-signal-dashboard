@@ -84,6 +84,10 @@ function normalizeName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function isDemoMode() {
+  return process.env.DEMO_MODE === "true";
+}
+
 function titleCaseRound(round: string) {
   return round
     .toLowerCase()
@@ -214,9 +218,11 @@ async function enrichFromTavily(companyName: string, website?: string): Promise<
 export async function enrichFundingForCompany(
   companyName: string,
   website?: string
-): Promise<FundingEnrichment> {
+): Promise<FundingEnrichment | null> {
   const tavily = await enrichFromTavily(companyName, website);
   if (tavily) return tavily;
+
+  if (!isDemoMode()) return null;
 
   const demo = DEMO_FUNDING[normalizeName(companyName)];
   if (demo) return demo;

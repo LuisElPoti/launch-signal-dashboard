@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ExternalLink,
   MessageCircle,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { LaunchRow } from "@/lib/data";
 import { formatCompactCurrency, formatCompactNumber, formatDateTime } from "@/lib/format";
+import { PaginationControls } from "@/components/dashboard/pagination-controls";
 import { SignalBadge } from "./signal-badge";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +29,12 @@ type SortKey =
   | "engagement"
   | "createdAt";
 
+const PAGE_SIZE = 10;
+
 export function LaunchesTable({ launches, loading = false, onRowClick }: LaunchesTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
 
   const sorted = [...launches].sort((a, b) => {
     const diff =
@@ -39,6 +43,11 @@ export function LaunchesTable({ launches, loading = false, onRowClick }: Launche
         : (a[sortKey] as number) - (b[sortKey] as number);
     return sortDir === "desc" ? -diff : diff;
   });
+  const paginatedRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [launches.length, sortKey, sortDir]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -133,7 +142,7 @@ export function LaunchesTable({ launches, loading = false, onRowClick }: Launche
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {sorted.map((row) => (
+            {paginatedRows.map((row) => (
               <tr
                 key={row.id}
                 className="hover:bg-accent/40 cursor-pointer transition-colors group"
@@ -252,6 +261,14 @@ export function LaunchesTable({ launches, loading = false, onRowClick }: Launche
           </tbody>
         </table>
       </div>
+      {sorted.length > 0 && (
+        <PaginationControls
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalItems={sorted.length}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

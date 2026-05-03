@@ -54,7 +54,10 @@ export function parseXAuthorHandle(url: string): string | null {
 
 async function fetchTweet(postId: string) {
   const token = process.env.X_BEARER_TOKEN;
-  if (!token || isDemoMode()) return null;
+  if (isDemoMode()) return null;
+  if (!token) {
+    throw new Error("X_BEARER_TOKEN is missing; cannot fetch live X post data.");
+  }
 
   const url = new URL(`https://api.twitter.com/2/tweets/${postId}`);
   url.searchParams.set("tweet.fields", "attachments,created_at,public_metrics,text");
@@ -93,41 +96,41 @@ async function fetchTweet(postId: string) {
 }
 
 export async function fetchXPostMetrics(postId: string): Promise<XMetrics> {
-  try {
-    const payload = await fetchTweet(postId);
-    const metrics = payload?.data?.public_metrics;
-    if (!metrics) return demoMetrics(postId);
+  if (isDemoMode()) return demoMetrics(postId);
 
-    return {
-      likes: metrics.like_count ?? 0,
-      comments: metrics.reply_count ?? 0,
-      reposts: (metrics.retweet_count ?? 0) + (metrics.quote_count ?? 0),
-      views: metrics.impression_count ?? 0,
-      collectedAt: new Date(),
-      source: "API",
-    };
-  } catch {
-    return demoMetrics(postId);
+  const payload = await fetchTweet(postId);
+  const metrics = payload?.data?.public_metrics;
+  if (!metrics) {
+    throw new Error(`X API did not return public metrics for post ${postId}.`);
   }
+
+  return {
+    likes: metrics.like_count ?? 0,
+    comments: metrics.reply_count ?? 0,
+    reposts: (metrics.retweet_count ?? 0) + (metrics.quote_count ?? 0),
+    views: metrics.impression_count ?? 0,
+    collectedAt: new Date(),
+    source: "API",
+  };
 }
 
 export async function fetchXPostDetails(postId: string): Promise<XPostDetails> {
-  try {
-    const payload = await fetchTweet(postId);
-    const tweet = payload?.data;
-    if (!tweet) return demoDetails(postId);
+  if (isDemoMode()) return demoDetails(postId);
 
-    const username = payload.includes?.users?.[0]?.username;
-
-    return {
-      postId: tweet.id,
-      authorHandle: username ? `@${username}` : null,
-      postText: tweet.text ?? "",
-      postedAt: tweet.created_at ? new Date(tweet.created_at) : null,
-      mediaType: tweet.attachments?.media_keys?.length ? "media" : "text",
-      source: "API",
-    };
-  } catch {
-    return demoDetails(postId);
+  const payload = await fetchTweet(postId);
+  const tweet = payload?.data;
+  if (!tweet) {
+    throw new Error(`X API did not return post details for post ${postId}.`);
   }
+
+  const username = payload.includes?.users?.[0]?.username;
+
+  return {
+    postId: tweet.id,
+    authorHandle: username ? `@${username}` : null,
+    postText: tweet.text ?? "",
+    postedAt: tweet.created_at ? new Date(tweet.created_at) : null,
+    mediaType: tweet.attachments?.media_keys?.length ? "media" : "text",
+    source: "API",
+  };
 }

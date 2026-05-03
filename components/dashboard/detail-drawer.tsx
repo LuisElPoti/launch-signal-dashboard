@@ -254,7 +254,7 @@ export function DetailDrawer({ row, onClose, onDraftGenerated }: DetailDrawerPro
                 <div className="flex items-center gap-2 mb-2">
                   <Brain className="size-3.5 text-rose-500" />
                   <p className="text-xs font-semibold text-rose-500">
-                    Performance read
+                    Performance diagnosis
                   </p>
                 </div>
                 <p className="text-sm text-foreground leading-relaxed">
@@ -265,7 +265,7 @@ export function DetailDrawer({ row, onClose, onDraftGenerated }: DetailDrawerPro
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="size-3.5 text-indigo-500" />
                   <p className="text-xs font-semibold text-indigo-500">
-                    Suggested outreach angle
+                    Suggested next move
                   </p>
                 </div>
                 <p className="text-sm text-foreground leading-relaxed">

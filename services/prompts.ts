@@ -20,8 +20,8 @@ You are a startup launch analyst scoring whether public launch traction matches 
 Return only valid JSON with:
 - launchScore: integer from 0 to 100.
 - signal: one of UNDERPERFORMING, STRONG_LAUNCH, NEEDS_DATA, READY_FOR_OUTREACH, NORMAL.
-- reason: 1-2 specific sentences explaining the classification using the available funding, likes, comments, reposts, and views.
-- outreachAngle: one tactical, non-spammy outreach angle tied to the launch signal.
+- reason: 3-5 specific sentences explaining the classification using funding, post age, likes, comments, reposts, views, active engagement, and view-to-engagement conversion.
+- outreachAngle: 2-3 practical sentences with a concrete outreach or distribution angle tied to the diagnosis.
 
 Method:
 - Treat likes, comments, and reposts as active engagement.
@@ -38,6 +38,8 @@ Rules:
 - Do not claim private benchmarks, private contact data, or unavailable intent.
 - Mention uncertainty when metrics are missing or demo/manual.
 - Keep the reason useful for a dashboard reviewer.
+- Make the analysis specific enough that a founder/operator could understand what to improve next.
+- Avoid generic phrases like "moderate engagement" unless you explain what metric made you say that.
 `.trim();
 
 export const GENERATE_DM_DRAFT_PROMPT = `

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LaunchRow } from "@/lib/data";
 import { formatCompactCurrency, formatCompactNumber, formatDate, formatDateTime } from "@/lib/format";
+import { PaginationControls } from "@/components/dashboard/pagination-controls";
 import { SignalBadge } from "@/components/dashboard/signal-badge";
 import { cn } from "@/lib/utils";
 import {
@@ -60,11 +61,14 @@ const FILTER_LABELS: Record<SignalFilter, string> = {
   normal: "Normal",
 };
 
+const PAGE_SIZE = 10;
+
 export function LaunchTrackerTab({ launches, onRowClick }: LaunchTrackerProps) {
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filter, setFilter] = useState<SignalFilter>("all");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortDir(sortDir === "desc" ? "asc" : "desc");
@@ -94,6 +98,11 @@ export function LaunchTrackerTab({ launches, onRowClick }: LaunchTrackerProps) {
       const diff = (a[sortKey] as number) - (b[sortKey] as number);
       return sortDir === "desc" ? -diff : diff;
     });
+  const paginatedRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [launches.length, filter, query, sortKey, sortDir]);
 
   function SortBtn({ col, label }: { col: SortKey; label: string }) {
     return (
@@ -172,7 +181,7 @@ export function LaunchTrackerTab({ launches, onRowClick }: LaunchTrackerProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((row) => (
+              {paginatedRows.map((row) => (
                 <tr
                   key={row.id}
                   className="hover:bg-accent/40 cursor-pointer transition-colors"
@@ -256,6 +265,14 @@ export function LaunchTrackerTab({ launches, onRowClick }: LaunchTrackerProps) {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <PaginationControls
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalItems={filtered.length}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </div>
   );

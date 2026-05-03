@@ -12,11 +12,18 @@ export interface TavilySearchResponse {
   results: TavilyResult[];
 }
 
+interface TavilySearchOptions {
+  topic?: "general" | "news" | "finance";
+}
+
 function isDemoMode() {
   return process.env.DEMO_MODE === "true";
 }
 
-export async function searchTavily(query: string): Promise<TavilySearchResponse | null> {
+export async function searchTavily(
+  query: string,
+  options: TavilySearchOptions = {}
+): Promise<TavilySearchResponse | null> {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey || isDemoMode()) return null;
 
@@ -29,12 +36,12 @@ export async function searchTavily(query: string): Promise<TavilySearchResponse 
       },
       body: JSON.stringify({
         query,
-        topic: "finance",
-        search_depth: process.env.TAVILY_SEARCH_DEPTH ?? "basic",
-        include_answer: "basic",
+        topic: options.topic ?? "finance",
+        search_depth: "advanced",
+        include_answer: "advanced",
         include_raw_content: false,
         include_favicon: false,
-        max_results: 6,
+        max_results: 10,
       }),
       next: { revalidate: 60 * 60 },
     });

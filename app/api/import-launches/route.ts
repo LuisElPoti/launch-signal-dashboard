@@ -100,6 +100,10 @@ function emptyMetric(source: SocialMetricsInput["source"] = "MANUAL"): SocialMet
   };
 }
 
+function isDemoMode() {
+  return process.env.DEMO_MODE === "true";
+}
+
 function xProfileFromHandle(handle?: string | null) {
   if (!handle) return null;
   return `https://x.com/${handle.replace("@", "")}`;
@@ -141,6 +145,8 @@ async function findOrCreateCompany(input: {
 
 async function persistFunding(companyId: string, companyName: string, website?: string | null) {
   const funding = await enrichFundingForCompany(companyName, website ?? undefined);
+  if (!funding) return null;
+
   const existing = await prisma.fundingRound.findFirst({
     where: {
       companyId,
@@ -171,6 +177,7 @@ async function persistFunding(companyId: string, companyName: string, website?: 
 async function persistContacts(company: {
   id: string;
   name: string;
+  productName?: string | null;
   website?: string | null;
   linkedinUrl?: string | null;
   xUrl?: string | null;
@@ -266,7 +273,7 @@ export async function POST(request: Request) {
             message:
               details.source === "API"
                 ? "Fetched X post details from X API"
-                : "Using demo fallback for X post details",
+                : "Using X demo post details because DEMO_MODE=true",
             metadata: {
               authorHandle: details.authorHandle,
               hasPostText: Boolean(details.postText),
@@ -282,7 +289,7 @@ export async function POST(request: Request) {
                 ? "Fetched X metrics from X API"
                 : metrics.source === "MANUAL"
                   ? "X metrics fetch was disabled; saved manual zero metrics"
-                  : "Using demo fallback for X metrics",
+                  : "Using X demo metrics because DEMO_MODE=true",
             metadata: {
               likes: metrics.likes,
               comments: metrics.comments,
@@ -291,16 +298,30 @@ export async function POST(request: Request) {
             },
           });
         } else if (platform === "LINKEDIN") {
-          details = getLinkedInDemoDetails(url);
+          const parsedLinkedIn = parseLinkedInPostUrl(url);
+          details = isDemoMode()
+            ? getLinkedInDemoDetails(url)
+            : {
+                ...fallbackDetails(url),
+                postId: parsedLinkedIn?.postId ?? null,
+              };
+          if (!isDemoMode() && !manualLinkedInMetrics?.[url]) {
+            throw new Error(
+              "LinkedIn live API/scraping is not enabled. Provide manual LinkedIn metrics or set DEMO_MODE=true for demo data."
+            );
+          }
           metrics = manualLinkedInMetrics?.[url]
             ? normalizeManualLinkedInMetrics(manualLinkedInMetrics[url])
             : getLinkedInDemoMetrics(url);
           addLog({
             url,
             step: "post_details",
-            level: "warning",
-            source: "DEMO",
-            message: "Using LinkedIn demo post details because LinkedIn API/scraping is not enabled",
+            level: details.source === "DEMO" ? "warning" : "info",
+            source: details.source === "DEMO" ? "DEMO" : "MANUAL",
+            message:
+              details.source === "DEMO"
+                ? "Using LinkedIn demo post details because DEMO_MODE=true"
+                : "Saved LinkedIn URL metadata without scraping",
             metadata: { postId: details.postId },
           });
           addLog({
@@ -311,7 +332,7 @@ export async function POST(request: Request) {
             message:
               metrics.source === "MANUAL"
                 ? "Using manually supplied LinkedIn metrics"
-                : "Using demo fallback for LinkedIn metrics",
+                : "Using LinkedIn demo metrics because DEMO_MODE=true",
             metadata: {
               likes: metrics.likes,
               comments: metrics.comments,
@@ -422,7 +443,7 @@ export async function POST(request: Request) {
             message:
               funding.source === "TAVILY"
                 ? "Enriched funding from Tavily funding announcement search"
-                : "Using demo fallback for funding enrichment",
+                : "Using demo funding because DEMO_MODE=true",
             metadata: {
               amountUsd: funding.amountUsd,
               round: funding.round,
@@ -436,8 +457,10 @@ export async function POST(request: Request) {
             url,
             step: "funding_enrichment",
             level: "warning",
-            source: "MANUAL",
-            message: "Funding enrichment was disabled for this import",
+            source: options.enrichFunding ? "TAVILY" : "MANUAL",
+            message: options.enrichFunding
+              ? "No funding announcement found from Tavily; no demo funding was saved"
+              : "Funding enrichment was disabled for this import",
           });
         }
 
@@ -445,6 +468,7 @@ export async function POST(request: Request) {
           const contacts = await persistContacts({
             id: company.id,
             name: company.name,
+            productName: extracted.productName,
             website: company.website,
             linkedinUrl: company.linkedinUrl ?? linkedinUrl,
             xUrl: company.xUrl ?? xUrl,
@@ -452,17 +476,27 @@ export async function POST(request: Request) {
           const hasOnlyFallbackContacts = contacts.every((contact) =>
             ["DEMO", "DOMAIN_INFERENCE", "INPUT_URL"].includes(contact.source)
           );
+          const contactSources = [...new Set(contacts.map((contact) => contact.source))];
+          const hasDemoContacts = contactSources.includes("DEMO");
           addLog({
             url,
             step: "contact_enrichment",
             level: hasOnlyFallbackContacts ? "warning" : "info",
-            source: hasOnlyFallbackContacts ? "FALLBACK" : "API",
+            source: contactSources.includes("TAVILY")
+              ? "TAVILY"
+              : hasOnlyFallbackContacts
+                ? "FALLBACK"
+                : "API",
             message: hasOnlyFallbackContacts
-              ? "Contacts saved from demo/domain/input fallback sources"
-              : "Contacts enriched from live provider",
+              ? hasDemoContacts
+                ? "Contacts saved from demo/domain/input fallback sources"
+                : "Contacts saved only from domain/input inference; no demo contacts were used"
+              : contactSources.includes("TAVILY")
+                ? "Contacts enriched from Tavily contact search plus safe inferred sources"
+                : "Contacts enriched from live provider",
             metadata: {
               count: contacts.length,
-              sources: [...new Set(contacts.map((contact) => contact.source))],
+              sources: contactSources,
             },
           });
         } else {

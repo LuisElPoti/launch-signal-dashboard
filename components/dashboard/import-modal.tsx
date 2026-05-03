@@ -32,11 +32,27 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
     total: number;
     currentUrl?: string;
   } | null>(null);
+  const [results, setResults] = useState<Array<{
+    url: string;
+    status: "success" | "failed";
+    error?: string;
+  }>>([]);
 
   if (!open) return null;
 
+  const hasResults = results.length > 0;
+  const hasFailures = results.some((result) => result.status === "failed");
+
   function toggleOption(id: string) {
     setOptions((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function handleFinish() {
+    setDone(false);
+    setProgress(null);
+    setResults([]);
+    setUrls("");
+    onClose();
   }
 
   async function handleAnalyze() {
@@ -49,6 +65,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
 
     setLoading(true);
     setDone(false);
+    setResults([]);
     setProgress({ current: 0, total: cleanUrls.length });
 
     let imported = 0;
@@ -80,12 +97,23 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
 
         if (!response.ok) {
           failed.push(url);
+          setResults((current) => [
+            ...current,
+            { url, status: "failed", error: data.error ?? "Import failed" },
+          ]);
           continue;
         }
 
         imported += data.imported ?? 0;
         if (data.results?.some((result) => !result.imported)) {
+          const error = data.results.find((result) => !result.imported)?.error;
           failed.push(url);
+          setResults((current) => [
+            ...current,
+            { url, status: "failed", error: error ?? "Import failed" },
+          ]);
+        } else {
+          setResults((current) => [...current, { url, status: "success" }]);
         }
       }
 
@@ -97,12 +125,7 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
       }
 
       await onImported();
-      setTimeout(() => {
-        setDone(false);
-        setProgress(null);
-        setUrls("");
-        onClose();
-      }, 1500);
+      setProgress(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import failed");
     } finally {
@@ -120,13 +143,13 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
         <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Import Launches</h2>
+              <h2 className="text-sm font-semibold text-foreground">Analyze Launch URLs</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Paste X or LinkedIn URLs to begin analysis
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleFinish}
               className="size-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <X className="size-4" />
@@ -173,6 +196,32 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
                     {progress.currentUrl}
                   </p>
                 )}
+              </div>
+            )}
+
+            {hasResults && (
+              <div className="rounded-xl border border-border bg-muted/20 p-3 max-h-36 overflow-y-auto">
+                <p className="text-xs font-medium text-foreground mb-2">Import result</p>
+                <div className="space-y-1.5">
+                  {results.map((result) => (
+                    <div key={`${result.url}:${result.status}`} className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full shrink-0",
+                            result.status === "success" ? "bg-emerald-500" : "bg-rose-500"
+                          )}
+                        />
+                        <span className="truncate font-mono text-muted-foreground">
+                          {result.url}
+                        </span>
+                      </div>
+                      {result.error && (
+                        <p className="pl-3.5 text-rose-500 leading-relaxed">{result.error}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -223,23 +272,25 @@ export function ImportModal({ open, onClose, onImported }: ImportModalProps) {
               variant="outline"
               size="sm"
               className="h-8 text-xs"
-              onClick={onClose}
-              disabled={loading || done}
+              onClick={handleFinish}
+              disabled={loading}
             >
               Cancel
             </Button>
             <Button
               size="sm"
               className="h-8 text-xs gap-2 bg-primary text-primary-foreground hover:bg-primary/90 ml-auto"
-              onClick={() => void handleAnalyze()}
-              disabled={!urls.trim() || loading || done}
+              onClick={() => (done ? handleFinish() : void handleAnalyze())}
+              disabled={loading || (!done && !urls.trim())}
             >
               {loading && <Loader2 className="size-3.5 animate-spin" />}
               {done && <CheckCircle2 className="size-3.5 text-emerald-400" />}
               {loading && progress
                 ? `Analyzing ${progress.current}/${progress.total}`
                 : done
-                  ? "Analysis complete!"
+                  ? hasFailures
+                    ? "Finish"
+                    : "Finish"
                   : "Start Analysis"}
             </Button>
           </div>

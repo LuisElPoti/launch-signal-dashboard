@@ -1,16 +1,15 @@
 "use client";
 
-import { Search, Upload, ScanLine, Bell } from "lucide-react";
+import { Search, Link2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
 
 interface TopNavProps {
   onImport: () => void;
-  onAnalyze: () => void;
 }
 
-export function TopNav({ onImport, onAnalyze }: TopNavProps) {
+export function TopNav({ onImport }: TopNavProps) {
   return (
     <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0">
       {/* Search */}
@@ -25,20 +24,11 @@ export function TopNav({ onImport, onAnalyze }: TopNavProps) {
       <div className="flex items-center gap-2 ml-auto">
         <Button
           size="sm"
-          variant="outline"
-          className="h-8 text-xs gap-1.5 border-border"
+          className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={onImport}
         >
-          <Upload className="size-3.5" />
-          Import Launches
-        </Button>
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={onAnalyze}
-        >
-          <ScanLine className="size-3.5" />
-          Analyze
+          <Link2 className="size-3.5" />
+          Analyze Launch URLs
         </Button>
 
         <ThemeToggle />

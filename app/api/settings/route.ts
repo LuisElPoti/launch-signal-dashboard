@@ -121,7 +121,7 @@ export async function GET() {
         name: "X API",
         envName: "X_BEARER_TOKEN",
         connectedDetail: "X_BEARER_TOKEN is configured. Imports can fetch live X post details and metrics.",
-        missingDetail: "X_BEARER_TOKEN is missing. X imports will use deterministic fallback data.",
+        missingDetail: "X_BEARER_TOKEN is missing. X imports will fail instead of saving demo data.",
         demoMode,
       }),
       {
@@ -133,7 +133,7 @@ export async function GET() {
         name: "Tavily",
         envName: "TAVILY_API_KEY",
         connectedDetail: "TAVILY_API_KEY is configured. Funding enrichment can search public announcements.",
-        missingDetail: "TAVILY_API_KEY is missing. Funding enrichment will use fallback data.",
+        missingDetail: "TAVILY_API_KEY is missing. Funding rows will not be created from demo data.",
         demoMode,
       }),
       envIntegration({

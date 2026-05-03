@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LaunchRow } from "@/lib/data";
 import { formatCompactNumber } from "@/lib/format";
+import { PaginationControls } from "@/components/dashboard/pagination-controls";
 import { SignalBadge } from "@/components/dashboard/signal-badge";
 import { cn } from "@/lib/utils";
 import {
@@ -63,12 +64,14 @@ function ConfidenceBar({ score }: { score: number }) {
 }
 
 type SortKey = "confidenceScore" | "company";
+const PAGE_SIZE = 8;
 
 export function ContactsTab({ launches, onRowClick }: ContactsTabProps) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("confidenceScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [showEnrichedOnly, setShowEnrichedOnly] = useState(false);
+  const [page, setPage] = useState(1);
 
   const rows = [...launches]
     .filter((l) => {
@@ -89,8 +92,13 @@ export function ContactsTab({ launches, onRowClick }: ContactsTabProps) {
       const diff = a.company.localeCompare(b.company);
       return sortDir === "desc" ? -diff : diff;
     });
+  const paginatedRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const enrichedCount = launches.filter((l) => l.contact.confidenceScore >= 70).length;
+
+  useEffect(() => {
+    setPage(1);
+  }, [launches.length, query, showEnrichedOnly, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(sortDir === "desc" ? "asc" : "desc");
@@ -189,7 +197,7 @@ export function ContactsTab({ launches, onRowClick }: ContactsTabProps) {
         </div>
 
         <div className="divide-y divide-border">
-          {rows.map((row) => {
+          {paginatedRows.map((row) => {
             const c = row.contact;
             const hasAll = c.email && c.linkedin;
             return (
@@ -284,6 +292,14 @@ export function ContactsTab({ launches, onRowClick }: ContactsTabProps) {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationControls
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalItems={rows.length}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </div>
   );
