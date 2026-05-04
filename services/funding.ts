@@ -209,10 +209,21 @@ function extractFundingFromTavily(payload: TavilySearchResponse): FundingEnrichm
   };
 }
 
-async function enrichFromTavily(companyName: string, website?: string): Promise<FundingEnrichment | null> {
-  const payload = await searchTavily(buildFundingQuery(companyName, website));
+async function extractFundingByTopic(
+  query: string,
+  topic: "finance" | "general"
+): Promise<FundingEnrichment | null> {
+  const payload = await searchTavily(query, { topic });
   if (!payload?.results?.length) return null;
   return extractFundingFromTavily(payload);
+}
+
+async function enrichFromTavily(companyName: string, website?: string): Promise<FundingEnrichment | null> {
+  const query = buildFundingQuery(companyName, website);
+  const financeResult = await extractFundingByTopic(query, "finance");
+  if (financeResult) return financeResult;
+
+  return extractFundingByTopic(query, "general");
 }
 
 export async function enrichFundingForCompany(
